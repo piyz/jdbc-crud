@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 
-public class JdbcExample implements CrudOperations, DbConnection{
+public class JdbcExample implements CrudOperations, DbConnection, CallableStatementOperations{
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JdbcExample.class);
 
@@ -122,5 +122,51 @@ public class JdbcExample implements CrudOperations, DbConnection{
         }
 
         return connection;
+    }
+
+    @Override
+    public void addUser(String firstName, String lastName) {
+
+        String insertProcedure = "{call add_user(?,?)}";
+
+        try (Connection connection = getConnection();
+             CallableStatement callableStatement = connection.prepareCall(insertProcedure)) {
+
+            callableStatement.setString(1, firstName);
+            callableStatement.setString(2, lastName);
+
+            callableStatement.executeUpdate();
+
+            LOGGER.info("Record is inserted into USERS table!");
+
+        } catch (SQLException e) {
+            LOGGER.info("Smth going wrong");
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void getUserById(int userId) {
+
+        String getProcedure = "{call get_users(?,?,?)}";
+
+        try (Connection connection = getConnection();
+             CallableStatement callableStatement = connection.prepareCall(getProcedure)) {
+
+            callableStatement.setInt(1, userId);
+            callableStatement.registerOutParameter(2, Types.VARCHAR);
+            callableStatement.registerOutParameter(3, Types.VARCHAR);
+
+            callableStatement.executeUpdate();
+
+            String firstName = callableStatement.getString(2);
+            String lastName = callableStatement.getString(3);
+
+            LOGGER.info(firstName + "::" + lastName);
+
+        } catch (SQLException e) {
+            LOGGER.info("Smth going wrong");
+            e.printStackTrace();
+        }
     }
 }
